@@ -67,16 +67,25 @@ def generate_html(weather_data, timestamp):
 
 
 def lambda_handler(event, context):
+    jst = pytz.timezone('Asia/Tokyo')
+    timestamp = datetime.now(jst).strftime('%Y-%m-%d_%H-%M-%S')
+
     weather_data = get_weather()
+
+    file_name_to_data_lake = f'weather_{timestamp}.json'
+    # S3バケット(データレイク)へJSONファイルをアップロード
+    s3.put_object(
+        Bucket=os.environ['S3_BUCKET_TO_DATA_LAKE'],
+        Key=file_name_to_data_lake,
+        Body=json.dumps(weather_data),
+        ContentType='application/json'
+    )
 
     if weather_data is None:
         return {
             'statusCode': 500,
             'body': json.dumps('Failed to retrieve weather data')
         }
-
-    jst = pytz.timezone('Asia/Tokyo')
-    timestamp = datetime.now(jst).strftime('%Y-%m-%d_%H-%M-%S')
 
     html_content = generate_html(weather_data, timestamp)
     file_name = f'weather_now.html'
